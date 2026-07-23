@@ -61,8 +61,8 @@ const TEAMS = [
   {code:"ITA", name:"Italy",        off:1859, def:1859},
   {code:"MEX", name:"Mexico",       off:1859, def:1859},  // approximate — from a single recent friendly result, not a direct rankings-page confirmation
   {code:"BEL", name:"Belgium",      off:1849, def:1849},
-  {code:"MAR", name:"Morocco",      off:1822, def:1822},  // approximate — verify at eloratings.net/Morocco
-  {code:"USA", name:"USA",          off:null, def:null},  // UNCONFIRMED — verify at eloratings.net/United_States before use
+  {code:"MAR", name:"Morocco",      off:1901, def:1901},  // approximate — verify at eloratings.net/Morocco
+  {code:"USA", name:"USA",          off:1747, def:1747},  // UNCONFIRMED — verify at eloratings.net/United_States before use
 ];
 
 const ROSTERS = null; // populate once you have real squad + passing data (see generate_rosters.py)
