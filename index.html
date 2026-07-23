@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passes Attempted Predictor — World Cup 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a1512;
+    --bg-panel: #0f1e19;
+    --pitch-a: #1c5a38;
+    --pitch-b: #1f6640;
+    --line: rgba(245,242,230,0.55);
+    --card-face: #4b5157;
+    --card-face-dark: #34383c;
+    --card-edge: #6a7178;
+    --gold: #e3b74e;
+    --gold-dim: #a68638;
+    --teamA: #4fa3d8;
+    --teamB: #e0684f;
+    --ink: #f3f0e6;
+    --muted: #93a39b;
+    --danger: #e0684f;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(circle at 50% -10%, #123023 0%, var(--bg) 55%);
+    color: var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding: 28px 20px 80px;
+  }
+  h1,h2,h3, .display{
+    font-family:'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .wrap{ max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom: 1px solid rgba(243,240,230,0.12);
+    padding-bottom: 18px; margin-bottom: 26px; gap: 16px; flex-wrap: wrap;
+  }
+  .brand-eyebrow{ color: var(--gold); font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; margin-bottom:6px;}
+  .brand-title{ font-size: 30px; font-weight:600; margin:0; line-height:1.05;}
+  .brand-sub{ color: var(--muted); font-size: 13px; margin-top:6px; max-width:560px; line-height:1.5; font-family:'Inter',sans-serif; text-transform:none; letter-spacing:0;}
+  #resetBtn{
+    background: transparent; border: 1px solid rgba(224,104,79,0.55); color: var(--danger);
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.08em; font-size:13px;
+    padding: 10px 18px; border-radius: 999px; cursor:pointer; transition: all .15s ease; white-space:nowrap;
+  }
+  #resetBtn:hover{ background: rgba(224,104,79,0.12); }
+
+  /* ---------- Disclaimer ---------- */
+  .disclaimer{
+    background: rgba(227,183,78,0.08); border: 1px solid rgba(227,183,78,0.28);
+    border-radius: var(--radius); padding: 12px 16px; font-size: 12.5px; color: #d9cba2;
+    line-height:1.55; margin-bottom: 26px;
+  }
+  .disclaimer b{ color: var(--gold); }
+
+  /* ---------- Team selection panels ---------- */
+  .team-panels{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom: 20px; }
+  @media (max-width: 760px){ .team-panels{ grid-template-columns: 1fr; } }
+  .panel{
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+    border: 1px solid rgba(243,240,230,0.10); border-radius: var(--radius); padding: 16px;
+  }
+  .panel.teamA{ border-top: 3px solid var(--teamA); }
+  .panel.teamB{ border-top: 3px solid var(--teamB); }
+  .panel-label{ font-size:11px; font-family:'Space Mono',monospace; letter-spacing:0.14em; margin-bottom:10px;}
+  .panel.teamA .panel-label{ color: var(--teamA); }
+  .panel.teamB .panel-label{ color: var(--teamB); }
+
+  .field-row{ display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .field-row label{ font-size:11px; color: var(--muted); width: 92px; flex-shrink:0; text-transform:uppercase; letter-spacing:0.05em; font-family:'Inter',sans-serif;}
+  select{
+    flex:1; min-width:120px; background: var(--bg-panel); color: var(--ink);
+    border: 1px solid rgba(243,240,230,0.18); border-radius:6px; padding: 8px 10px; font-size:13.5px;
+    font-family:'Inter',sans-serif;
+  }
+  select:focus, button:focus{ outline: 2px solid var(--gold); outline-offset:1px; }
+
+  .ratings-readout{ display:flex; gap:10px; margin-top: 10px; }
+  .rating-chip{
+    flex:1; background: rgba(0,0,0,0.25); border:1px solid rgba(243,240,230,0.12);
+    border-radius:6px; padding: 8px 10px; text-align:center;
+  }
+  .rating-chip .num{ font-family:'Oswald',sans-serif; font-size:20px; font-weight:600; }
+  .rating-chip .lbl{ font-size:9.5px; color: var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-top:2px;}
+
+  /* ---------- Style selector strip ---------- */
+  .style-strip{
+    display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom: 22px;
+  }
+  @media (max-width: 760px){ .style-strip{ grid-template-columns: 1fr; } }
+  .style-strip .panel{ padding: 14px 16px; }
+  .style-strip .field-row{ margin-bottom:8px; }
+  .style-strip .field-row label{ width: 92px; }
+
+  /* ---------- Pitch ---------- */
+  .pitch-section{ margin-bottom: 24px; }
+  .pitch-caption{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  .pitch-caption h2{ font-size:15px; margin:0; color: var(--ink); }
+  .legend{ display:flex; gap:14px; font-size:11px; color: var(--muted); font-family:'Inter',sans-serif; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .swatch{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  .pitch{
+    position: relative; width: 100%; aspect-ratio: 68 / 100; max-width: 720px; margin: 0 auto;
+    background: repeating-linear-gradient(to bottom, var(--pitch-a) 0, var(--pitch-a) 10%, var(--pitch-b) 10%, var(--pitch-b) 20%);
+    border: 2px solid var(--line); border-radius: 4px; overflow: hidden;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.7);
+  }
+  .pitch .halfway{ position:absolute; left:0; right:0; top:50%; height:0; border-top: 2px solid var(--line); }
+  .pitch .center-circle{
+    position:absolute; left:50%; top:50%; width: 22%; aspect-ratio:1; border: 2px solid var(--line);
+    border-radius:50%; transform: translate(-50%,-50%);
+  }
+  .pitch .center-spot{ position:absolute; left:50%; top:50%; width:6px; height:6px; background:var(--line); border-radius:50%; transform:translate(-50%,-50%); }
+  .box{ position:absolute; left:50%; border: 2px solid var(--line); border-radius:2px; transform: translateX(-50%);}
+  .box.top{ top:0; width: 62%; height: 15%; border-top:none; }
+  .box.bottom{ bottom:0; width: 62%; height: 15%; border-bottom:none; }
+  .box.small.top{ top:0; width: 34%; height: 7%; }
+  .box.small.bottom{ bottom:0; width: 34%; height: 7%; }
+
+  .slot{
+    position:absolute; width: 10%; aspect-ratio: 0.72; transform: translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .card{
+    width:100%; height:100%; border-radius: 8px; position:relative;
+    background: linear-gradient(160deg, var(--card-face) 0%, var(--card-face-dark) 100%);
+    border: 1.5px solid var(--card-edge); display:flex; flex-direction:column; align-items:center;
+    justify-content:flex-start; padding: 5px 4px 4px; transition: transform .12s ease, box-shadow .12s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  }
+  .slot:hover .card{ transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+  .card.filled.teamA{ background: linear-gradient(160deg, #2f6f95 0%, #1b3d52 100%); border-color: var(--teamA); }
+  .card.filled.teamB{ background: linear-gradient(160deg, #a9503c 0%, #5c261b 100%); border-color: var(--teamB); }
+  .card .pos-tag{
+    font-family:'Oswald',sans-serif; font-size: 10.5px; letter-spacing:0.05em; color: rgba(255,255,255,0.8);
+    background: rgba(0,0,0,0.28); border-radius: 3px; padding: 1px 5px; align-self:flex-start;
+  }
+  .card .rating-badge{
+    position:absolute; top:5px; right:5px; font-family:'Oswald',sans-serif; font-weight:600; font-size:13px;
+    color: var(--gold);
+  }
+  .card .glyph{ margin-top:auto; margin-bottom:2px; opacity:0.85;}
+  .card .plus{ font-size: 24px; color: rgba(255,255,255,0.5); margin-top:auto; margin-bottom:auto;}
+  .card .name{
+    font-size: 10px; font-family:'Inter',sans-serif; font-weight:600; text-align:center; color:#fff;
+    line-height:1.15; margin-top:auto; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    background: rgba(0,0,0,0.35); border-radius: 3px; padding: 3px 2px;
+  }
+  .card .number{
+    font-family:'Oswald',sans-serif; font-size: 10.5px; color: rgba(255,255,255,0.7); position:absolute; top:5px; left:5px;
+  }
+
+  /* ---------- Roster modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background: rgba(4,8,7,0.72); display:none; align-items:center; justify-content:center;
+    z-index: 50; padding: 20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background: #10201a; border:1px solid rgba(243,240,230,0.15); border-radius: 12px;
+    width: 100%; max-width: 360px; max-height: 80vh; overflow-y:auto; padding: 18px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+  }
+  .modal h3{ font-size:15px; margin: 0 0 4px; }
+  .modal .modal-sub{ font-size:12px; color:var(--muted); margin-bottom:14px; font-family:'Inter',sans-serif;}
+  .roster-option{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(243,240,230,0.1); border-radius: 8px; padding: 9px 10px; margin-bottom:8px;
+    color: var(--ink); cursor:pointer; font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .roster-option:hover{ border-color: var(--gold); background: rgba(227,183,78,0.08); }
+  .roster-option .r-num{ font-family:'Oswald',sans-serif; color: var(--gold); font-size:15px; width:22px; text-align:center; flex-shrink:0;}
+  .roster-option .r-meta{ flex:1; }
+  .roster-option .r-name{ font-weight:600; }
+  .roster-option .r-stat{ font-size:11px; color: var(--muted); margin-top:1px; }
+  .modal-clear{
+    width:100%; background:transparent; border: 1px dashed rgba(224,104,79,0.5); color: var(--danger);
+    border-radius:8px; padding:8px; font-size:12.5px; cursor:pointer; margin-top:4px; font-family:'Inter',sans-serif;
+  }
+  .modal-close{
+    display:block; margin: 12px auto 0; background:none; border:none; color: var(--muted); font-size:12px;
+    cursor:pointer; text-decoration:underline;
+  }
+
+  /* ---------- Predict selector + results ---------- */
+  .predict-section{ margin-top: 28px; }
+  .predict-section h2{ font-size:15px; margin: 0 0 10px; }
+  .predict-row{ display:flex; gap:10px; margin-bottom: 18px; flex-wrap:wrap; align-items:center;}
+  .predict-row select{ flex:1; min-width:240px; }
+  .empty-note{
+    color: var(--muted); font-size: 13px; font-family:'Inter',sans-serif; padding: 18px; text-align:center;
+    border: 1px dashed rgba(243,240,230,0.15); border-radius: var(--radius);
+  }
+  table.results{ width:100%; border-collapse: collapse; font-size: 13.5px; }
+  table.results th{
+    text-align:left; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid rgba(243,240,230,0.15);
+  }
+  table.results td{ padding: 10px; border-bottom: 1px solid rgba(243,240,230,0.06); vertical-align:middle;}
+  table.results tr.highlight{ background: rgba(227,183,78,0.10); }
+  .team-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:7px; }
+  .predicted-num{ font-family:'Oswald',sans-serif; font-size:19px; font-weight:600; color: var(--gold); }
+  .range-note{ font-size:10.5px; color: var(--muted); display:block; margin-top:1px;}
+  .base-note{ font-size:11.5px; color: var(--muted); }
+  .pos-pill{
+    font-family:'Space Mono',monospace; font-size:10.5px; background: rgba(255,255,255,0.06);
+    border-radius:4px; padding:2px 6px;
+  }
+
+  footer{ text-align:center; color: var(--muted); font-size:11px; margin-top: 40px; font-family:'Inter',sans-serif; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <div class="brand-eyebrow">Match Model &middot; Passes Attempted</div>
+      <h1 class="brand-title">World Cup 2026 Passes Predictor</h1>
+      <p class="brand-sub">Pick two squads, set formations and defensive style, fill the pitch, then predict how many passes each selected player is likely to attempt in this matchup.</p>
+    </div>
+    <button id="resetBtn" onclick="resetAll()">&#8635; Reset to default</button>
+  </div>
+
+  <div class="disclaimer">
+    <b>About this data:</b> team ratings now come from real Elo data (eloratings.net, snapshot dated
+    19 Jan 2026 &mdash; see <code>data.js</code> for sourcing notes; a team marked with &ldquo;&sim;&rdquo;
+    below has an <b>unconfirmed rating</b> and defaults to a neutral 1500 until you look up the real
+    number). Rosters, player names, and "recent average" pass counts are still
+    <b>illustrative placeholders</b>. The prediction math itself (regression coefficients from our
+    possession &amp; passes-attempted models) is real throughout.
+  </div>
+
+  <!-- TEAM SELECTION -->
+  <div class="team-panels">
+    <div class="panel teamA">
+      <div class="panel-label">TEAM A</div>
+      <div class="field-row">
+        <label for="teamASelect">Team</label>
+        <select id="teamASelect" onchange="onTeamChange('A', this.value)">
+          <option value="">Select team&hellip;</option>
+        </select>
+      </div>
+      <div class="ratings-readout">
+        <div class="rating-chip"><div class="num" id="offA">&mdash;</div><div class="lbl">Off Rating</div></div>
+        <div class="rating-chip"><div class="num" id="defA">&mdash;</div><div class="lbl">Def Rating</div></div>
+      </div>
+    </div>
+    <div class="panel teamB">
+      <div class="panel-label">TEAM B</div>
+      <div class="field-row">
+        <label for="teamBSelect">Team</label>
+        <select id="teamBSelect" onchange="onTeamChange('B', this.value)">
+          <option value="">Select team&hellip;</option>
+        </select>
+      </div>
+      <div class="ratings-readout">
+        <div class="rating-chip"><div class="num" id="offB">&mdash;</div><div class="lbl">Off Rating</div></div>
+        <div class="rating-chip"><div class="num" id="defB">&mdash;</div><div class="lbl">Def Rating</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STYLE SELECTORS -->
+  <div class="style-strip">
+    <div class="panel teamA">
+      <div class="panel-label">TEAM A &middot; TACTICS</div>
+      <div class="field-row"><label for="formA">Formation</label>
+        <select id="formA" onchange="onStyleChange('formationA', this.value)">
+          <option value="4-3-3">4-3-3</option><option value="4-4-2">4-4-2</option><option value="4-2-3-1">4-2-3-1</option>
+        </select></div>
+      <div class="field-row"><label for="pressA">Press</label>
+        <select id="pressA" onchange="onStyleChange('pressA', this.value)">
+          <option value="High">High</option><option value="Mid" selected>Mid</option><option value="Low">Low</option>
+        </select></div>
+      <div class="field-row"><label for="markA">Marking</label>
+        <select id="markA" onchange="onStyleChange('markA', this.value)">
+          <option value="Man">Man</option><option value="Zonal" selected>Zonal</option>
+        </select></div>
+      <div class="field-row"><label for="shapeA">Def Shape</label>
+        <select id="shapeA" onchange="onStyleChange('shapeA', this.value)">
+          <option value="Compact">Compact</option><option value="Deep" selected>Deep</option>
+        </select></div>
+    </div>
+    <div class="panel teamB">
+      <div class="panel-label">TEAM B &middot; TACTICS</div>
+      <div class="field-row"><label for="formB">Formation</label>
+        <select id="formB" onchange="onStyleChange('formationB', this.value)">
+          <option value="4-3-3">4-3-3</option><option value="4-4-2">4-4-2</option><option value="4-2-3-1">4-2-3-1</option>
+        </select></div>
+      <div class="field-row"><label for="pressB">Press</label>
+        <select id="pressB" onchange="onStyleChange('pressB', this.value)">
+          <option value="High">High</option><option value="Mid" selected>Mid</option><option value="Low">Low</option>
+        </select></div>
+      <div class="field-row"><label for="markB">Marking</label>
+        <select id="markB" onchange="onStyleChange('markB', this.value)">
+          <option value="Man">Man</option><option value="Zonal" selected>Zonal</option>
+        </select></div>
+      <div class="field-row"><label for="shapeB">Def Shape</label>
+        <select id="shapeB" onchange="onStyleChange('shapeB', this.value)">
+          <option value="Compact">Compact</option><option value="Deep" selected>Deep</option>
+        </select></div>
+    </div>
+  </div>
+
+  <!-- PITCH -->
+  <div class="pitch-section">
+    <div class="pitch-caption">
+      <h2>Team sheet — click a card to set a player</h2>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--teamA)"></span>Team A</span>
+        <span><span class="swatch" style="background:var(--teamB)"></span>Team B</span>
+        <span><span class="swatch" style="background:var(--card-face)"></span>Empty</span>
+      </div>
+    </div>
+    <div class="pitch" id="pitch">
+      <div class="box top"></div><div class="box bottom"></div>
+      <div class="box small top"></div><div class="box small bottom"></div>
+      <div class="halfway"></div><div class="center-circle"></div><div class="center-spot"></div>
+      <!-- slots injected by JS -->
+    </div>
+  </div>
+
+  <!-- PREDICT SELECTOR -->
+  <div class="predict-section">
+    <h2>Predict passes attempted</h2>
+    <div class="predict-row">
+      <select id="predictSelect" onchange="onPredictSelect(this.value)">
+        <option value="">Select a filled slot to highlight below&hellip;</option>
+      </select>
+    </div>
+    <div id="resultsArea"></div>
+  </div>
+
+  <footer>Illustrative demo tool — coefficients derived from the same possession &amp; passes-attempted regression models built earlier in this workflow.</footer>
+</div>
+
+<!-- ROSTER MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <h3 id="modalTitle">Position</h3>
+    <div class="modal-sub" id="modalSub">Choose a player</div>
+    <div id="modalList"></div>
+    <button class="modal-clear" id="modalClearBtn" onclick="clearSlot()">Clear this slot</button>
+    <button class="modal-close" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+/* =========================================================
+   DATA
+========================================================= */
+const COEF = {"feature_order":["delta_off","delta_def","press_high_a","press_mid_a","press_high_b","press_mid_b","man_a","man_b","compact_a","compact_b","f433_a","f442_a","f433_b","f442_b"],"possession_logit":[0.0787,0.00073,0.00001,0.22183,0.0877,-0.20134,-0.0811,-0.01296,-0.00022,0.00518,-0.08189,0.00638,0.01421,-0.00323,-0.01635],"positions":{"CB":[51.23188,0.01015,0.00057,-0.36569,1.50058,-3.65414,-1.6649,-0.65443,0.22381,2.31227,-1.72353,1.0123,0.77636,-0.25866,0.16553],"RB":[38.52022,0.00837,0.00009,4.43123,0.65504,-2.55686,-1.1776,-0.08051,-0.01657,1.05531,-1.17299,-0.21601,0.44525,0.1091,0.59662],"LB":[38.47144,0.00782,-0.00121,4.02358,1.02623,-2.0057,-0.78768,0.17767,-0.66256,0.95912,-0.71204,0.17544,-0.17748,-0.01542,-0.07553],"CDM":[54.83031,0.01192,-0.00002,8.49046,2.60123,-3.93817,-1.21303,-0.40404,0.26212,3.25985,-0.86652,0.15687,-0.29847,0.06081,-0.42074],"CM":[46.13688,0.0112,-0.00023,6.03982,1.13749,-2.96254,-0.95973,-0.65993,0.03816,1.92508,-1.54408,0.6139,1.28522,0.35059,-0.19844],"CAM":[32.57164,0.00622,0.00115,4.21633,1.17456,-1.93784,-1.00552,0.16958,-0.12549,1.08354,-1.26014,-0.33478,0.27243,0.13259,0.01305],"RW":[22.62746,0.00463,0.00026,2.44204,0.66823,-1.98293,-0.56847,-0.10132,0.06973,0.31294,-0.37764,-0.34056,0.00719,0.27534,0.09048],"LW":[21.80691,0.00483,0.00038,2.79358,0.70277,-0.91488,-0.14671,-0.15625,0.18755,0.12709,-0.49937,0.35466,-0.03486,0.22204,-0.26584],"ST":[16.22993,0.00365,0.00011,0.38665,0.63716,-0.68232,-0.29989,-0.02907,-0.50752,0.41852,-0.15014,0.03792,-0.2803,-0.17811,-0.36903]}};
+
+// TEAMS and (optionally) ROSTERS now come from data.js, loaded via <script> before this file.
+// If a team's off/def is null (unconfirmed — see data.js notes), fall back to a neutral 1500
+// rather than silently breaking the math, and flag it visibly in the UI.
+TEAMS.forEach(t => {
+  t._unconfirmed = (t.off === null || t.def === null);
+  if (t.off === null) t.off = 1500;
+  if (t.def === null) t.def = 1500;
+});
+
+const POSITIONS = ["CB","RB","LB","CDM","CM","CAM","RW","LW","ST"];
+const POSITION_LABEL = {CB:"Center Back", RB:"Right Back", LB:"Left Back", CDM:"Def. Midfielder",
+  CM:"Central Midfielder", CAM:"Att. Midfielder", RW:"Right Winger", LW:"Left Winger", ST:"Striker"};
+
+// 10 outfield slots per formation: {type, x (0-100 across pitch width), depth (0=own goal line, 1=near halfway)}
+// Depth bands are spaced so consecutive lines never sit closer than one card-height apart, guaranteeing no overlap.
+const FORMATIONS = {
+  "4-3-3": [
+    {type:"LB", x:12, depth:0.06},{type:"CB", x:37, depth:0.06},{type:"CB", x:63, depth:0.06},{type:"RB", x:88, depth:0.06},
+    {type:"CDM", x:50, depth:0.32},
+    {type:"CM", x:26, depth:0.58},{type:"CM", x:74, depth:0.58},
+    {type:"LW", x:12, depth:0.90},{type:"ST", x:50, depth:0.90},{type:"RW", x:88, depth:0.90}
+  ],
+  "4-4-2": [
+    {type:"LB", x:10, depth:0.06},{type:"CB", x:37, depth:0.06},{type:"CB", x:63, depth:0.06},{type:"RB", x:90, depth:0.06},
+    {type:"LW", x:8, depth:0.48},{type:"CM", x:37, depth:0.48},{type:"CM", x:63, depth:0.48},{type:"RW", x:92, depth:0.48},
+    {type:"ST", x:37, depth:0.86},{type:"ST", x:63, depth:0.86}
+  ],
+  "4-2-3-1": [
+    {type:"LB", x:10, depth:0.05},{type:"CB", x:37, depth:0.05},{type:"CB", x:63, depth:0.05},{type:"RB", x:90, depth:0.05},
+    {type:"CDM", x:37, depth:0.30},{type:"CDM", x:63, depth:0.30},
+    {type:"LW", x:10, depth:0.58},{type:"CAM", x:50, depth:0.58},{type:"RW", x:90, depth:0.58},
+    {type:"ST", x:50, depth:0.92}
+  ]
+};
+
+const FIRST_NAMES = ["A.","B.","C.","D.","E.","F.","G.","H.","J.","K.","L.","M.","N.","P.","R.","S.","T.","V."];
+const LAST_NAMES = ["Adeyemi","Bergman","Costa","Dahl","Esposito","Fenwick","Garrido","Hidalgo","Ivanov","Jorgensen",
+  "Kovac","Larsen","Mercer","Novak","Okafor","Prieto","Reyes","Salgado","Torrance","Ueda","Villar","Winters",
+  "Ximenes","Yilmaz","Zorko","Bianchi","Calder","Dubois","Ferreira","Gustavsson"];
+
+/* =========================================================
+   DETERMINISTIC PRNG (so rosters stay stable for a given team/position)
+========================================================= */
+function hashStr(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+const POS_BASE_PASSES = {CB:52, RB:38, LB:38, CDM:55, CM:46, CAM:32, RW:23, LW:23, ST:16};
+
+function generateRoster(teamCode, position){
+  const rng = mulberry32(hashStr(teamCode + "|" + position));
+  const players = [];
+  for(let i=0;i<3;i++){
+    const fn = FIRST_NAMES[Math.floor(rng()*FIRST_NAMES.length)];
+    const ln = LAST_NAMES[Math.floor(rng()*LAST_NAMES.length)];
+    const base = POS_BASE_PASSES[position];
+    const avgPasses = Math.round((base + (rng()*10-5)) * 10) / 10;
+    const capsPlayed = Math.floor(rng()*20) + 11; // 11-30 caps
+    const rating = Math.floor(rng()*16) + 74; // 74-89
+    const number = Math.floor(rng()*98) + 1;
+    players.push({
+      id: teamCode+"-"+position+"-"+i,
+      name: fn+" "+ln,
+      avgPasses, capsPlayed, rating, number, position
+    });
+  }
+  return players;
+}
+
+/* =========================================================
+   STATE
+========================================================= */
+const state = {
+  teamA: null, teamB: null,
+  formationA: "4-3-3", formationB: "4-3-3",
+  pressA: "Mid", pressB: "Mid",
+  markA: "Zonal", markB: "Zonal",
+  shapeA: "Deep", shapeB: "Deep",
+  slotsA: [], slotsB: [],
+  rosterCache: {}, // key "TEAMCODE|POS" -> players array
+  modal: null, // {team:'A'|'B', index:int}
+  predictHighlight: null // slot key "A-3"
+};
+
+function teamByCode(code){ return TEAMS.find(t=>t.code===code); }
+
+function rosterFor(teamCode, position){
+  // Prefer real data from data.js if it's been populated.
+  if (typeof ROSTERS !== "undefined" && ROSTERS && ROSTERS[teamCode] && ROSTERS[teamCode][position]) {
+    return ROSTERS[teamCode][position];
+  }
+  const key = teamCode+"|"+position;
+  if(!state.rosterCache[key]) state.rosterCache[key] = generateRoster(teamCode, position);
+  return state.rosterCache[key];
+}
+
+function buildSlots(formationName){
+  return FORMATIONS[formationName].map(s => ({type:s.type, x:s.x, depth:s.depth, playerId:null}));
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+function populateTeamSelects(){
+  ["teamASelect","teamBSelect"].forEach(id=>{
+    const sel = document.getElementById(id);
+    TEAMS.forEach(t=>{
+      const opt = document.createElement("option");
+      opt.value = t.code; opt.textContent = t._unconfirmed ? (t.name + " (~ unconfirmed rating)") : t.name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function resetAll(){
+  state.teamA = null; state.teamB = null;
+  state.formationA = "4-3-3"; state.formationB = "4-3-3";
+  state.pressA = "Mid"; state.pressB = "Mid";
+  state.markA = "Zonal"; state.markB = "Zonal";
+  state.shapeA = "Deep"; state.shapeB = "Deep";
+  state.slotsA = buildSlots("4-3-3");
+  state.slotsB = buildSlots("4-3-3");
+  state.rosterCache = {};
+  state.modal = null;
+  state.predictHighlight = null;
+
+  document.getElementById("teamASelect").value = "";
+  document.getElementById("teamBSelect").value = "";
+  document.getElementById("formA").value = "4-3-3"; document.getElementById("formB").value = "4-3-3";
+  document.getElementById("pressA").value = "Mid"; document.getElementById("pressB").value = "Mid";
+  document.getElementById("markA").value = "Zonal"; document.getElementById("markB").value = "Zonal";
+  document.getElementById("shapeA").value = "Deep"; document.getElementById("shapeB").value = "Deep";
+
+  render();
+}
+
+function onTeamChange(side, code){
+  state[side==="A"?"teamA":"teamB"] = code || null;
+  // clear any slots that referenced the old roster (players are team+position specific anyway)
+  const slots = side==="A" ? state.slotsA : state.slotsB;
+  slots.forEach(s=> s.playerId = null);
+  render();
+}
+
+function onStyleChange(key, value){
+  state[key] = value;
+  if(key==="formationA"){ state.slotsA = buildSlots(value); }
+  if(key==="formationB"){ state.slotsB = buildSlots(value); }
+  render();
+}
+
+/* =========================================================
+   MODAL / ROSTER PICK
+========================================================= */
+function openModal(team, index){
+  const teamCode = team==="A" ? state.teamA : state.teamB;
+  if(!teamCode){ alert("Select a team for this side first."); return; }
+  state.modal = {team, index};
+  renderModal();
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function closeModal(){
+  state.modal = null;
+  document.getElementById("modalOverlay").classList.remove("open");
+}
+function pickPlayer(playerId){
+  const {team, index} = state.modal;
+  const slots = team==="A" ? state.slotsA : state.slotsB;
+  slots[index].playerId = playerId;
+  closeModal();
+  render();
+}
+function clearSlot(){
+  const {team, index} = state.modal;
+  const slots = team==="A" ? state.slotsA : state.slotsB;
+  slots[index].playerId = null;
+  closeModal();
+  render();
+}
+
+function renderModal(){
+  if(!state.modal) return;
+  const {team, index} = state.modal;
+  const teamCode = team==="A" ? state.teamA : state.teamB;
+  const slots = team==="A" ? state.slotsA : state.slotsB;
+  const slot = slots[index];
+  const players = rosterFor(teamCode, slot.type);
+  const teamObj = teamByCode(teamCode);
+
+  document.getElementById("modalTitle").textContent = teamObj.name + " — " + POSITION_LABEL[slot.type];
+  document.getElementById("modalSub").textContent = "Team " + team + " roster, most recent caps";
+  const list = document.getElementById("modalList");
+  list.innerHTML = "";
+  players.forEach(p=>{
+    const div = document.createElement("div");
+    div.className = "roster-option";
+    div.onclick = ()=>pickPlayer(p.id);
+    div.innerHTML = `<span class="r-num">${p.number}</span>
+      <span class="r-meta">
+        <span class="r-name">${p.name}</span>
+        <span class="r-stat">Avg ${p.avgPasses} passes / ${p.capsPlayed} recent caps &middot; Rating ${p.rating}</span>
+      </span>`;
+    list.appendChild(div);
+  });
+  document.getElementById("modalClearBtn").style.display = slot.playerId ? "block" : "none";
+}
+
+/* =========================================================
+   PREDICTION MATH
+========================================================= */
+// Build the 14-length feature vector from the perspective of `selfSide` ('A' or 'B').
+function featureVector(selfSide){
+  const selfTeam = teamByCode(selfSide==="A" ? state.teamA : state.teamB);
+  const oppTeam  = teamByCode(selfSide==="A" ? state.teamB : state.teamA);
+  const selfPress = selfSide==="A" ? state.pressA : state.pressB;
+  const oppPress  = selfSide==="A" ? state.pressB : state.pressA;
+  const selfMark  = selfSide==="A" ? state.markA : state.markB;
+  const oppMark   = selfSide==="A" ? state.markB : state.markA;
+  const selfShape = selfSide==="A" ? state.shapeA : state.shapeB;
+  const oppShape  = selfSide==="A" ? state.shapeB : state.shapeA;
+  const selfForm  = selfSide==="A" ? state.formationA : state.formationB;
+  const oppForm   = selfSide==="A" ? state.formationB : state.formationA;
+
+  if(!selfTeam || !oppTeam) return null;
+
+  return [
+    selfTeam.off - oppTeam.off,                 // delta_off
+    selfTeam.def - oppTeam.def,                 // delta_def
+    selfPress==="High" ? 1:0,                   // press_high_self
+    selfPress==="Mid" ? 1:0,                     // press_mid_self
+    oppPress==="High" ? 1:0,                     // press_high_opp
+    oppPress==="Mid" ? 1:0,                      // press_mid_opp
+    selfMark==="Man" ? 1:0,                      // man_self
+    oppMark==="Man" ? 1:0,                       // man_opp
+    selfShape==="Compact" ? 1:0,                 // compact_self
+    oppShape==="Compact" ? 1:0,                  // compact_opp
+    selfForm==="4-3-3" ? 1:0,                    // f433_self
+    selfForm==="4-4-2" ? 1:0,                    // f442_self
+    oppForm==="4-3-3" ? 1:0,                     // f433_opp
+    oppForm==="4-4-2" ? 1:0                      // f442_opp
+  ];
+}
+
+// context effect = sum(coef_i * feature_i), EXCLUDING the intercept (index 0),
+// because we anchor the prediction to the player's own personal baseline instead
+// of the training sample's average baseline.
+function contextEffect(position, features){
+  const coefs = COEF.positions[position];
+  let sum = 0;
+  for(let i=0;i<features.length;i++){ sum += coefs[i+1]*features[i]; }
+  return sum;
+}
+
+function predictedPossession(){
+  const fA = featureVector("A");
+  if(!fA) return null;
+  const c = COEF.possession_logit;
+  let logit = c[0];
+  for(let i=0;i<fA.length;i++){ logit += c[i+1]*fA[i]; }
+  const p = 1/(1+Math.exp(-logit));
+  return p;
+}
+
+function predictForSlot(team, slot){
+  const teamCode = team==="A" ? state.teamA : state.teamB;
+  if(!teamCode || !slot.playerId) return null;
+  const players = rosterFor(teamCode, slot.type);
+  const player = players.find(p=>p.id===slot.playerId);
+  if(!player) return null;
+  const features = featureVector(team);
+  if(!features) return null;
+  const effect = contextEffect(slot.type, features);
+  const predicted = Math.max(2, player.avgPasses + effect);
+  return {player, predicted, effect};
+}
+
+/* =========================================================
+   RENDER
+========================================================= */
+function render(){
+  // team readouts
+  const tA = teamByCode(state.teamA), tB = teamByCode(state.teamB);
+  document.getElementById("offA").textContent = tA ? tA.off : "—";
+  document.getElementById("defA").textContent = tA ? tA.def : "—";
+  document.getElementById("offB").textContent = tB ? tB.off : "—";
+  document.getElementById("defB").textContent = tB ? tB.def : "—";
+
+  renderPitch();
+  renderPredictSelect();
+  renderResults();
+  if(state.modal) renderModal();
+}
+
+function renderPitch(){
+  const pitch = document.getElementById("pitch");
+  // remove old slots
+  pitch.querySelectorAll(".slot").forEach(el=>el.remove());
+
+  function place(team, slots){
+    slots.forEach((slot, index)=>{
+      const y = team==="A" ? (96 - slot.depth*44) : (4 + slot.depth*44);
+      const el = document.createElement("div");
+      el.className = "slot";
+      el.style.left = slot.x + "%";
+      el.style.top = y + "%";
+      el.onclick = ()=>openModal(team, index);
+
+      const teamCode = team==="A" ? state.teamA : state.teamB;
+      const player = (teamCode && slot.playerId) ? rosterFor(teamCode, slot.type).find(p=>p.id===slot.playerId) : null;
+
+      const card = document.createElement("div");
+      card.className = "card" + (player ? " filled team"+team : "");
+      if(player){
+        card.innerHTML = `<span class="number">${player.number}</span>
+          <span class="rating-badge">${player.rating}</span>
+          <span class="pos-tag">${slot.type}</span>
+          <span class="name">${player.name}</span>`;
+      } else {
+        card.innerHTML = `<span class="pos-tag">${slot.type}</span><span class="plus">+</span>`;
+      }
+      el.appendChild(card);
+      pitch.appendChild(el);
+    });
+  }
+  place("A", state.slotsA);
+  place("B", state.slotsB);
+}
+
+function filledSlots(){
+  const out = [];
+  state.slotsA.forEach((s,i)=>{ if(state.teamA && s.playerId) out.push({team:"A", index:i, slot:s}); });
+  state.slotsB.forEach((s,i)=>{ if(state.teamB && s.playerId) out.push({team:"B", index:i, slot:s}); });
+  return out;
+}
+
+function renderPredictSelect(){
+  const sel = document.getElementById("predictSelect");
+  const filled = filledSlots();
+  const prevVal = sel.value;
+  sel.innerHTML = "";
+  const optDefault = document.createElement("option");
+  optDefault.value = ""; optDefault.textContent = filled.length ? "Select a filled slot to highlight below…" : "Fill in players on the pitch above first";
+  sel.appendChild(optDefault);
+
+  filled.forEach(f=>{
+    const teamCode = f.team==="A" ? state.teamA : state.teamB;
+    const player = rosterFor(teamCode, f.slot.type).find(p=>p.id===f.slot.playerId);
+    const opt = document.createElement("option");
+    const key = f.team+"-"+f.index;
+    opt.value = key;
+    opt.textContent = `[Team ${f.team} - ${POSITION_LABEL[f.slot.type]}] ${player.name}`;
+    sel.appendChild(opt);
+  });
+
+  if(filled.some(f=>(f.team+"-"+f.index)===prevVal)) sel.value = prevVal;
+}
+
+function onPredictSelect(val){
+  state.predictHighlight = val || null;
+  renderResults();
+  if(val){
+    const row = document.getElementById("row-"+val);
+    if(row) row.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+}
+
+function renderResults(){
+  const area = document.getElementById("resultsArea");
+  const filled = filledSlots();
+  if(!state.teamA || !state.teamB){
+    area.innerHTML = `<div class="empty-note">Select Team A and Team B above to begin.</div>`;
+    return;
+  }
+  if(filled.length===0){
+    area.innerHTML = `<div class="empty-note">No players on the pitch yet — click any gray card above to add one.</div>`;
+    return;
+  }
+
+  const poss = predictedPossession();
+  const possA = poss!==null ? (poss*100).toFixed(1) : "—";
+  const possB = poss!==null ? ((1-poss)*100).toFixed(1) : "—";
+
+  let rows = "";
+  filled.forEach(f=>{
+    const result = predictForSlot(f.team, f.slot);
+    if(!result) return;
+    const key = f.team+"-"+f.index;
+    const teamObj = teamByCode(f.team==="A" ? state.teamA : state.teamB);
+    const isHighlight = state.predictHighlight===key;
+    const dotColor = f.team==="A" ? "var(--teamA)" : "var(--teamB)";
+    const low = Math.max(2, Math.round(result.predicted - 6));
+    const high = Math.round(result.predicted + 6);
+    rows += `<tr id="row-${key}" class="${isHighlight?'highlight':''}">
+      <td><span class="team-dot" style="background:${dotColor}"></span>${teamObj.name}</td>
+      <td>${result.player.name}</td>
+      <td><span class="pos-pill">${f.slot.type}</span> ${POSITION_LABEL[f.slot.type]}</td>
+      <td class="base-note">${result.player.avgPasses}</td>
+      <td>
+        <span class="predicted-num">${result.predicted.toFixed(1)}</span>
+        <span class="range-note">likely range ${low}&ndash;${high}</span>
+      </td>
+    </tr>`;
+  });
+
+  area.innerHTML = `
+    <div class="empty-note" style="text-align:left; margin-bottom:16px; border-style:solid; border-color:rgba(227,183,78,0.25);">
+      Model-predicted possession for this matchup: <b style="color:var(--gold)">${teamByCode(state.teamA).name} ${possA}%</b>
+      &nbsp;/&nbsp; <b style="color:var(--gold)">${teamByCode(state.teamB).name} ${possB}%</b>
+      — this feeds into every player's prediction below.
+    </div>
+    <table class="results">
+      <thead><tr><th>Team</th><th>Player</th><th>Position</th><th>Recent avg</th><th>Predicted attempted</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="base-note" style="margin-top:12px;">
+      "Predicted attempted" = the player's own recent average, adjusted by this specific matchup's ratings,
+      formations, press, marking, and defensive shape (via the regression models built earlier). Range is an
+      illustrative ±6-pass band, not a formal confidence interval.
+    </p>
+  `;
+}
+
+/* =========================================================
+   BOOT
+========================================================= */
+populateTeamSelects();
+resetAll();
+</script>
+</body>
+</html>
